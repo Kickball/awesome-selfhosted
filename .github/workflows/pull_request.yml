@@ -1,0 +1,47 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  check_syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: create diff
+        run: git diff origin/master -U0 README.md | grep --perl-regexp --only-matching "(?<=^\+).*" > temp.md
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+      - name: install chalk
+        run: |
+          cd tests 
+          npm install chalk
+          cd ..
+      - name: Checks
+        run: script -e -c 'node tests/test.js -r README.md -d temp.md' 
+
+  check_links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: create diff
+        run: git diff origin/master -U0 README.md | grep --perl-regexp --only-matching "(?<=^\+).*" > temp.md          
+      - name: Set up Ruby 2.6
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.6.x
+      - name: install awesome_bot
+        run: gem install awesome_bot
+      - name: Checks
+        run: awesome_bot -f temp.md --allow-redirect --skip-save-results --allow 202 --white-list < tests/link_whitelist.txt
+          
